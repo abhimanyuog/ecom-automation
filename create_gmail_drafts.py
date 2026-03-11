@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Sportify — Gmail Draft Creator
+Sportify — Gmail Draft Creator (Dynamic GenAI version)
 ================================
-Creates 2 Gmail drafts for order ORD-48293 (Alex Sharma):
+Creates 2 dynamic personalized Gmail drafts for order ORD-48293 (Alex Sharma):
   1. Thank-You email (Repeat Buyer)
   2. Cross-Sell email (Fitness Smartwatch → earbuds, bands, tee)
 
@@ -13,7 +13,7 @@ SETUP (one-time, ~2 minutes):
   4. Credentials → Create → OAuth 2.0 Client ID → Desktop App → Download JSON
   5. Rename the downloaded file to "credentials.json"
   6. Move it to the same folder as this script
-  7. Run: python3 create_gmail_drafts.py
+  7. Run: python3 create_dynamic_gmail_drafts.py
 
 On first run you will be asked to paste a URL into your browser and then paste
 back the redirect URL. After that a token.json is saved — future runs are
@@ -102,47 +102,73 @@ def create_draft(service, to, subject, body):
 
 
 # ── Draft content ─────────────────────────────────────────────────────────────
-DRAFTS = [
-    {
+def get_dynamic_drafts(customer_name="Alex Sharma", customer_email="alex.sharma@email.com", product="Fitness Smartwatch", order_num=2):
+    import json
+    try:
+        import google.generativeai as genai
+    except ImportError:
+        print("\n❌ google-generativeai package is not installed.")
+        print("   Please run: python3 -m pip install google-generativeai\n")
+        raise SystemExit(1)
+
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        print("\n❌ GEMINI_API_KEY environment variable not set.")
+        print("   Please set it before running the script:")
+        print("   export GEMINI_API_KEY='your_api_key'")
+        print("   Get your API key at: https://aistudio.google.com/app/apikey\n")
+        raise SystemExit(1)
+
+    genai.configure(api_key=api_key)
+    # Using gemini-2.5-flash which is fast and supports JSON response validation
+    model = genai.GenerativeModel('gemini-2.5-flash')
+
+    prompt = f"""
+    You are Sportify's expert customer success AI. Generate two personalized emails for a customer named {customer_name} ({customer_email}) who just bought a '{product}'. This is their order #{order_num} with us.
+
+    Email 1: Thank-You (Repeat Buyer)
+    - Tone: Enthusiastic, personalized, and professional.
+    - Mention the specific product they bought.
+    - Include a brief dummy order summary (Order #ORD-48293, Estimated delivery: Standard Delivery to Delhi 110034).
+    - Vary the phrasing significantly from typical generic templates.
+
+    Email 2: Cross-Sell
+    - Tone: Athletic and encouraging.
+    - Suggest 3 relevant complementary products for the {product} (e.g., SoundPace Wireless Earbuds - ₹2,799, PowerGrip Resistance Bands Set - ₹1,299, AirDry Performance T-Shirt - ₹999).
+    - Give a brief, appealing reason to buy each product.
+
+    Respond STRICTLY in the following JSON format:
+    [
+      {{
         "label": "Thank-You (Repeat Buyer)",
-        "to": "alex.sharma@email.com",
-        "subject": "Great to see you again, Alex! 🎉",
-        "body": (
-            "Hi Alex,\n\n"
-            "Great to see you again! 😊 You clearly have great taste.\n\n"
-            "Your Fitness Smartwatch is confirmed and we're already getting it ready "
-            "for you. This is your 2nd order with us — and we appreciate every single one.\n\n"
-            "Here's your order summary:\n\n"
-            "  • Fitness Smartwatch — ₹1,999\n"
-            "  • Order #ORD-48293\n"
-            "  • Estimated delivery: Standard Delivery to Delhi 110034\n\n"
-            "As always, if you need anything at all, just hit reply.\n\n"
-            "With thanks,\n"
-            "Team Sportify"
-        ),
-    },
-    {
+        "to": "{customer_email}",
+        "subject": "<Generate a highly personalized catchy subject>",
+        "body": "<Generate the raw text email body (use standard newlines \\n)>"
+      }},
+      {{
         "label": "Cross-Sell",
-        "to": "alex.sharma@email.com",
-        "subject": "Level up your fitness game, Alex 💪",
-        "body": (
-            "Hi Alex,\n\n"
-            "Since you just added a Fitness Smartwatch to your arsenal, here are a few "
-            "things that'll make every workout even better:\n\n"
-            "🎧 SoundPace Wireless Earbuds — ₹2,799\n"
-            "IPX5 sweat-resistant with a secure fit built for movement — the perfect "
-            "workout soundtrack companion for your new smartwatch.\n\n"
-            "💪 PowerGrip Resistance Bands Set — ₹1,299\n"
-            "Track your reps on your new smartwatch while you train — 5 tension levels "
-            "for every exercise from warm-up to burnout.\n\n"
-            "👕 AirDry Performance T-Shirt — ₹999\n"
-            "Quick-dry, anti-odour fabric so you stay fresh whether you're hitting the "
-            "gym or going for a run.\n\n"
-            "Keep crushing it,\n"
-            "Team Sportify"
-        ),
-    },
-]
+        "to": "{customer_email}",
+        "subject": "<Generate a highly personalized catchy cross-sell subject>",
+        "body": "<Generate the raw text email body (use standard newlines \\n)>"
+      }}
+    ]
+    """
+    
+    response = model.generate_content(
+        prompt,
+        generation_config=genai.GenerationConfig(
+            response_mime_type="application/json"
+        )
+    )
+    
+    try:
+        drafts = json.loads(response.text)
+        return drafts
+    except Exception as e:
+        print(f"\n❌ Failed to parse Gemini response: {e}")
+        print("Raw response:")
+        print(response.text)
+        raise SystemExit(1)
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────
@@ -151,8 +177,11 @@ def main():
     service = get_gmail_service()
     print("✅  Connected!\n")
 
+    print("🧠  Generating personalized drafts via Gemini...")
+    drafts = get_dynamic_drafts()
+
     results = []
-    for d in DRAFTS:
+    for d in drafts:
         print(f"📧  Creating draft: {d['label']}...")
         draft = create_draft(service, d["to"], d["subject"], d["body"])
         draft_id = draft.get("id", "unknown")
