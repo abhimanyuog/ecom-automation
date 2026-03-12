@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from email.mime.text import MIMEText
 
 from models import OrderEvent
-from notion_client import log_order_to_notion
+from notion_helper import log_order_to_notion
 
 app = FastAPI(title="Sportify Drafts Webhook")
 
