@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from email.mime.text import MIMEText
 
 from models import OrderEvent
+from notion_client import log_order_to_notion
 
 app = FastAPI(title="Sportify Drafts Webhook")
 
@@ -152,10 +153,14 @@ def home():
 @app.post("/webhook")
 async def process_order_webhook(payload: OrderEvent):
     """
-    Receives JSON webhook, generates drafts via Gemini, and pushes them to Gmail.
+    Receives JSON webhook, logs to Notion, generates drafts via Gemini, and pushes them to Gmail.
     """
+    # 0. Log to Notion First
+    print(f"📝 Logging order {payload.order.order_id} to Notion...")
+    log_order_to_notion(payload)
+
     # 1. Connect to Gmail
-    print(f"🔗 Processing order {payload.order.order_id} for {payload.customer.name}...")
+    print(f"🔗 Connecting to Gmail for {payload.customer.name}...")
     service = get_gmail_service()
     
     # 2. Ask Gemini to write the drafts

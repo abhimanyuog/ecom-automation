@@ -11,3 +11,7 @@ services:
         sync: false
       - key: GMAIL_TOKEN_JSON
         sync: false
+      - key: NOTION_API_KEY
+        sync: false
+      - key: NOTION_DATABASE_ID
+        sync: false
