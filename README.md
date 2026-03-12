@@ -12,7 +12,7 @@ PROJECT OUTLINE:
 COMPONENTS AND WORKFLOW:
 1. Ecommerce Automation Claude Skill- Created a skill in claude which updates the notion databases with each order and generates personalised emails.
 2. ML Dataset Generator Claude Skill- Created a skill which creates sample input dataset in all common dataset input formats, specially trained for ecommerce orders in .json format
-3. APIs used and their working:
+3. APIs/frameworks used:
 
    Gemini API Key - Google AI Studio - For generating personalised email text
 
