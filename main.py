@@ -55,17 +55,17 @@ def get_gmail_service():
 
     return build("gmail", "v1", credentials=creds)
 
-# ── Draft builder ─────────────────────────────────────────────────────────────
-def create_draft(service, to, subject, body):
+# ── Email Sender ──────────────────────────────────────────────────────────────
+def send_email(service, to, subject, body):
     msg = MIMEText(body, "plain", "utf-8")
     msg["to"] = to
     msg["subject"] = subject
     raw = base64.urlsafe_b64encode(msg.as_bytes()).decode()
-    draft = service.users().drafts().create(
+    message = service.users().messages().send(
         userId="me",
-        body={"message": {"raw": raw}},
+        body={"raw": raw},
     ).execute()
-    return draft
+    return message
 
 # ── Gemini Draft Generator ────────────────────────────────────────────────────
 def get_dynamic_drafts(payload: OrderEvent):
@@ -153,7 +153,7 @@ def home():
 @app.post("/webhook")
 async def process_order_webhook(payload: OrderEvent):
     """
-    Receives JSON webhook, logs to Notion, generates drafts via Gemini, and pushes them to Gmail.
+    Receives JSON webhook, logs to Notion, generates emails via Gemini, and sends them via Gmail.
     """
     # 0. Log to Notion First
     print(f"📝 Logging order {payload.order.order_id} to Notion...")
@@ -167,24 +167,24 @@ async def process_order_webhook(payload: OrderEvent):
     print("🧠 Generating personalized drafts via Gemini...")
     drafts = get_dynamic_drafts(payload)
     
-    # 3. Create the drafts in Gmail
+    # 3. Send the emails via Gmail
     results = []
     for d in drafts:
-        print(f"📧 Creating draft: {d['label']}...")
-        draft = create_draft(service, d["to"], d["subject"], d["body"])
-        draft_id = draft.get("id", "unknown")
+        print(f"📧 Sending email: {d['label']}...")
+        message = send_email(service, d["to"], d["subject"], d["body"])
+        message_id = message.get("id", "unknown")
         results.append({
             "label": d["label"],
-            "id": draft_id,
+            "id": message_id,
             "subject": d["subject"]
         })
-        print(f"   ✅ Done (Draft ID: {draft_id})")
+        print(f"   ✅ Done (Message ID: {message_id})")
 
     return {
         "status": "success",
-        "message": f"Successfully created {len(results)} drafts",
+        "message": f"Successfully sent {len(results)} emails",
         "order_id": payload.order.order_id,
-        "drafts": results
+        "emails": results
     }
 
 if __name__ == "__main__":
