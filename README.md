@@ -4,7 +4,7 @@ PROJECT OUTLINE:
 1. Pipeline maintains and updates a notion database which contains orders' and customers' details
 2. It then generates 2 personalised emails for each order and saves them in drafts:
 
-      (i) An order confirmation message along with the order reciept
+      (i) An order confirmation thankyou message along with the order reciept
 
       (ii) A cross-sell email suggesting what products to buy next based on the ordered item
 3. Created a server using Render which can automate the pipeline with real time uptake of data
