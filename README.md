@@ -30,4 +30,4 @@ SIGNIFICANCE OF EACH FILE:
 5. requirements.txt - List of dependencies Render needs to install to deploy our website
 6. models.py - Defines the shape of the .json input file, so it is easy for FastAPI to read or reject.
 7. render.yaml - Defines rules for the Render environment, automates the whole Render setup process
-8. notion_helper.py - 
+8. notion_helper.py - Takes data from the input and neatly formats it into our notion database
